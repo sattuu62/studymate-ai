@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>StudyMate AI — Your Study Companion</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet"
+    >
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="navbar__inner">
+
+        <a href="#top" class="navbar__logo">
+            <span class="navbar__logo-mark">SM</span>
+            <span>StudyMate <span class="accent">AI</span></span>
+        </a>
+
+        <nav class="navbar__links" id="navLinks">
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How it works</a>
+            <a href="#footer">About</a>
+        </nav>
+
+        <div class="navbar__actions">
+            <button class="btn btn--primary" id="askBtn" type="button">
+                Ask StudyMate
+            </button>
+
+            <button
+                class="navbar__toggle"
+                id="navToggle"
+                type="button"
+                aria-label="Toggle menu"
+                aria-expanded="false"
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+
+    </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+
+    <div class="hero__glow hero__glow--one"></div>
+    <div class="hero__glow hero__glow--two"></div>
+
+    <div class="hero__inner">
+
+        <div class="hero__text">
+
+            <p class="eyebrow">
+                BUILT FOR STUDENTS
+            </p>
+
+            <h1 class="hero__title">
+                Study smarter.
+                <br>
+                <span class="accent">Understand faster.</span>
+            </h1>
+
+            <p class="hero__subtitle">
+                Ask questions, summarize notes, practice with quizzes,
+                create flashcards, and build study plans — all in one place.
+            </p>
+
+            <div class="hero__cta">
+
+                <button
+                    class="btn btn--primary btn--lg"
+                    id="askBtnHero"
+                    type="button"
+                >
+                    Ask StudyMate
+                </button>
+
+                <a
+                    href="#features"
+                    class="btn btn--ghost btn--lg"
+                >
+                    Explore features
+                </a>
+
+            </div>
+
+            <div class="hero__stats">
+
+                <div class="stat">
+                    <strong>24/7</strong>
+                    <span>Study support</span>
+                </div>
+
+                <div class="stat">
+                    <strong>5</strong>
+                    <span>Powerful tools</span>
+                </div>
+
+                <div class="stat">
+                    <strong>0₹</strong>
+                    <span>Free to start</span>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="hero__visual">
+
+            <div class="study-window">
+
+                <div class="window-top">
+                    <div class="window-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                    <span class="window-title">StudyMate AI</span>
+                </div>
+
+                <div class="window-body">
+
+                    <div class="ai-message">
+                        <div class="ai-avatar">SM</div>
+
+                        <div>
+                            <small>StudyMate AI</small>
+                            <p>
+                                What are you studying today?
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mini-tools">
+
+                        <div class="mini-tool">
+                            <span>💡</span>
+                            <strong>Ask</strong>
+                        </div>
+
+                        <div class="mini-tool">
+                            <span>📝</span>
+                            <strong>Notes</strong>
+                        </div>
+
+                        <div class="mini-tool">
+                            <span>🧠</span>
+                            <strong>Quiz</strong>
+                        </div>
+
+                        <div class="mini-tool">
+                            <span>🃏</span>
+                            <strong>Cards</strong>
+                        </div>
+
+                    </div>
+
+                    <div class="typing-line">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="features" id="features">
+
+    <div class="section-heading">
+
+        <p class="eyebrow">
+            EVERYTHING YOU NEED
+        </p>
+
+        <h2>
+            Five tools. One study space.
+        </h2>
+
+        <p class="section-heading__sub">
+            Stop switching between different apps.
+            StudyMate brings your essential study tools together.
+        </p>
+
+    </div>
+
+    <div class="features__grid">
+
+        <article class="feature-card feature-card--purple" id="askCard">
+
+            <div class="feature-card__number">01</div>
+
+            <div class="feature-card__icon">
+                💡
+            </div>
+
+            <h3>
+                Instant Answers
+            </h3>
+
+            <p>
+                Ask any study question and get a clear,
+                step-by-step explanation in simple language.
+            </p>
+
+            <button class="feature-card__link" type="button">
+                Ask a question →
+            </button>
+
+        </article>
+
+        <article class="feature-card feature-card--blue" id="notesCard">
+
+            <div class="feature-card__number">02</div>
+
+            <div class="feature-card__icon">
+                📝
+            </div>
+
+            <h3>
+                Notes Summarizer
+            </h3>
+
+            <p>
+                Turn long notes and textbook content into
+                concise revision points.
+            </p>
+
+            <button class="feature-card__link" type="button">
+                Summarize notes →
+            </button>
+
+        </article>
+
+        <article class="feature-card feature-card--green" id="quizCard">
+
+            <div class="feature-card__number">03</div>
+
+            <div class="feature-card__icon">
+                🧠
+            </div>
+
+            <h3>
+                Practice Quizzes
+            </h3>
+
+            <p>
+                Generate practice questions and test how much
+                you actually remember.
+            </p>
+
+            <button class="feature-card__link" type="button">
+                Take a quiz →
+            </button>
+
+        </article>
+
+        <article class="feature-card feature-card--orange" id="flashcardsCard">
+
+            <div class="feature-card__number">04</div>
+
+            <div class="feature-card__icon">
+                🃏
+            </div>
+
+            <h3>
+                Flashcards
+            </h3>
+
+            <p>
+                Convert important concepts into quick
+                active-recall revision cards.
+            </p>
+
+            <button class="feature-card__link" type="button">
+                Make flashcards →
+            </button>
+
+        </article>
+
+        <article class="feature-card feature-card--pink" id="plannerCard">
+
+            <div class="feature-card__number">05</div>
+
+            <div class="feature-card__icon">
+                📅
+            </div>
+
+            <h3>
+                Study Planner
+            </h3>
+
+            <p>
+                Create a realistic study schedule around
+                your subjects, exams and available time.
+            </p>
+
+            <button class="feature-card__link" type="button">
+                Build a plan →
+            </button>
+
+        </article>
+
+    </div>
+
+</section>
+
+<section class="how" id="how-it-works">
+
+    <div class="section-heading">
+
+        <p class="eyebrow">
+            SIMPLE BY DESIGN
+        </p>
+
+        <h2>
+            Start studying in seconds.
+        </h2>
+
+    </div>
+
+    <div class="how__steps">
+
+        <div class="how__step">
+            <span class="how__num">1</span>
+
+            <div>
+                <h3>Choose a tool</h3>
+
+                <p>
+                    Pick answers, notes, quizzes, flashcards
+                    or planning.
+                </p>
+            </div>
+        </div>
+
+        <div class="how__step">
+            <span class="how__num">2</span>
+
+            <div>
+                <h3>Tell StudyMate what you need</h3>
+
+                <p>
+                    Enter your question, topic, notes or exam details.
+                </p>
+            </div>
+        </div>
+
+        <div class="how__step">
+            <span class="how__num">3</span>
+
+            <div>
+                <h3>Learn and revise</h3>
+
+                <p>
+                    Use the response to understand,
+                    practice and prepare.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+</section>
+
+</main>
+
+<footer class="footer" id="footer">
+
+    <div class="footer__inner">
+
+        <div class="footer__brand">
+
+            <a href="#top" class="navbar__logo">
+                <span class="navbar__logo-mark">SM</span>
+                <span>StudyMate <span class="accent">AI</span></span>
+            </a>
+
+            <p>
+                A study companion built to make learning
+                clearer, faster and less stressful.
+            </p>
+
+        </div>
+
+        <div class="footer__links">
+
+            <div>
+                <h4>Product</h4>
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How it works</a>
+            </div>
+
+            <div>
+                <h4>StudyMate</h4>
+                <a href="#top">Back to top</a>
+
+                <button
+                    type="button"
+                    class="footer__ask"
+                    id="askBtnFooter"
+                >
+                    Ask StudyMate
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="footer__bottom">
+
+        <p>
+            © <span id="year"></span>
+            StudyMate AI. Built with HTML, CSS & JavaScript.
+        </p>
+
+    </div>
+
+</footer>
+
+<div
+    class="modal"
+    id="askModal"
+    aria-hidden="true"
+>
+
+    <div
+        class="modal__backdrop"
+        id="modalBackdrop"
+    ></div>
+
+    <div
+        class="modal__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalTitle"
+    >
+
+        <div class="modal__header">
+
+            <div>
+                <span class="modal__label">STUDYMATE AI</span>
+
+                <h3 id="modalTitle">
+                    Ask StudyMate
+                </h3>
+            </div>
+
+            <div class="modal__header-actions">
+
+                <button
+                    class="chat-clear"
+                    id="clearChat"
+                    type="button"
+                >
+                    Clear
+                </button>
+
+                <button
+                    class="modal__close"
+                    id="modalClose"
+                    type="button"
+                    aria-label="Close"
+                >
+                    ×
+                </button>
+
+            </div>
+
+        </div>
+
+        <div
+            class="modal__body"
+            id="modalBody"
+        >
+
+            <div class="welcome-message">
+
+                <div class="welcome-message__icon">
+                    ✨
+                </div>
+
+                <h4>Ready when you are.</h4>
+
+                <p id="modalHint">
+                    Ask anything you're studying.
+                    StudyMate will explain it clearly.
+                </p>
+
+            </div>
+
+        </div>
+
+        <form
+            class="modal__form"
+            id="modalForm"
+        >
+
+            <textarea
+                id="modalInput"
+                rows="3"
+                placeholder="e.g. Explain Newton's second law"
+                autocomplete="off"
+            ></textarea>
+
+            <div class="modal__form-bottom">
+
+                <span>
+                    Study smarter, not harder.
+                </span>
+
+                <button
+                    type="submit"
+                    class="btn btn--primary"
+                    id="modalSubmit"
+                >
+                    Ask
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
