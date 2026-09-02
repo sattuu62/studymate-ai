@@ -21,8 +21,8 @@ apiKey: apiKey
 });
 
 const MODELS = [
-process.env.GEMINI_PRIMARY_MODEL || "gemini-2.5-flash",
-process.env.GEMINI_FALLBACK_MODEL || "gemini-2.0-flash"
+    "gemini-2.5-flash",
+    "gemini-3.6-flash"
 ];
 
 function wait(ms) {
