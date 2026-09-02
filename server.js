@@ -20,16 +20,18 @@ const ai = new GoogleGenAI({
 apiKey: apiKey
 });
 
-const PRIMARY_MODEL = process.env.GEMINI_PRIMARY_MODEL || "gemini-3.6-flash";
-const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || "gemini-3.5-flash";
+const MODELS = [
+process.env.GEMINI_PRIMARY_MODEL || "gemini-3.6-flash",
+process.env.GEMINI_FALLBACK_MODEL || "gemini-3.5-flash"
+];
 
-function sleep(ms) {
+function wait(ms) {
 return new Promise(function (resolve) {
 setTimeout(resolve, ms);
 });
 }
 
-function getErrorStatus(error) {
+function getStatus(error) {
 if (!error) {
 return 0;
 }
@@ -48,15 +50,16 @@ return 0;
 
 }
 
-async function generateWithFallback(prompt, config) {
-const models = [PRIMARY_MODEL, FALLBACK_MODEL];
+async function askGemini(prompt, config) {
 let lastError = null;
 
 ```
-for (const model of models) {
+for (let i = 0; i < MODELS.length; i++) {
+    const model = MODELS[i];
+
     for (let attempt = 1; attempt <= 2; attempt++) {
         try {
-            console.log("Trying Gemini model:", model);
+            console.log("Trying model:", model);
             console.log("Attempt:", attempt);
 
             const response = await ai.models.generateContent({
@@ -65,22 +68,20 @@ for (const model of models) {
                 config: config
             });
 
-            console.log("Gemini response received from:", model);
+            console.log("Gemini response received.");
 
             return response;
 
         } catch (error) {
             lastError = error;
 
-            const status = getErrorStatus(error);
+            const status = getStatus(error);
 
             console.error(
-                "Gemini error | Model:",
-                model,
-                "| Attempt:",
-                attempt,
-                "| Status:",
-                status
+                "Gemini error:",
+                "model=" + model,
+                "status=" + status,
+                "attempt=" + attempt
             );
 
             if (
@@ -89,8 +90,8 @@ for (const model of models) {
                 status === 502 ||
                 status === 503
             ) {
-                if (attempt < 2) {
-                    await sleep(2000);
+                if (attempt === 1) {
+                    await wait(2000);
                 }
 
                 continue;
@@ -107,7 +108,7 @@ throw lastError;
 }
 
 app.get("/health", function (req, res) {
-res.json({
+return res.json({
 status: "StudyMate server is working"
 });
 });
@@ -116,102 +117,93 @@ app.post("/ask", async function (req, res) {
 console.log("Received /ask request");
 
 ```
-const question = req.body.question;
-const mode = req.body.mode || "chat";
-
-if (
-    !question ||
-    typeof question !== "string" ||
-    !question.trim()
-) {
-    return res.status(400).json({
-        error: "Please enter something first."
-    });
-}
-
-const cleanQuestion = question.trim();
-
-let prompt = "";
-
-if (mode === "summarize") {
-    prompt =
-        "You are StudyMate AI, a helpful school study assistant.\n\n" +
-        "Summarize these notes using:\n" +
-        "1. Key Points\n" +
-        "2. Important Concepts\n" +
-        "3. Important Definitions\n" +
-        "4. Quick Revision Points\n\n" +
-        "Use simple language.\n" +
-        "Do not add information that is not present in the notes.\n\n" +
-        "NOTES:\n" +
-        cleanQuestion;
-
-} else if (mode === "quiz") {
-    prompt =
-        "Create exactly 5 multiple choice questions about this topic.\n\n" +
-        "Return ONLY valid JSON.\n\n" +
-        "Required format:\n" +
-        "{\"questions\":[{\"question\":\"Question\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":0}]}\n\n" +
-        "Rules:\n" +
-        "Exactly 5 questions.\n" +
-        "Exactly 4 options per question.\n" +
-        "answer must be 0, 1, 2, or 3.\n" +
-        "0 means A.\n" +
-        "1 means B.\n" +
-        "2 means C.\n" +
-        "3 means D.\n" +
-        "Suitable for school students.\n" +
-        "No markdown.\n" +
-        "No explanations.\n\n" +
-        "TOPIC:\n" +
-        cleanQuestion;
-
-} else if (mode === "flashcards") {
-    prompt =
-        "Create exactly 8 study flashcards about this topic.\n\n" +
-        "Return ONLY valid JSON.\n\n" +
-        "Required format:\n" +
-        "{\"flashcards\":[{\"front\":\"Question or term\",\"back\":\"Answer\"}]}\n\n" +
-        "Rules:\n" +
-        "Exactly 8 flashcards.\n" +
-        "Keep answers concise.\n" +
-        "Cover important concepts and definitions.\n" +
-        "Suitable for school students.\n" +
-        "No markdown.\n\n" +
-        "TOPIC:\n" +
-        cleanQuestion;
-
-} else if (mode === "planner") {
-    prompt =
-        "You are StudyMate AI, a study planning assistant.\n\n" +
-        "Create a realistic study plan from the student's information.\n\n" +
-        "Include:\n" +
-        "- Daily tasks\n" +
-        "- Subject priorities\n" +
-        "- Revision\n" +
-        "- Practice questions\n" +
-        "- Short breaks\n" +
-        "- Final revision\n" +
-        "- Useful study tips\n\n" +
-        "Do not make the schedule unrealistically intense.\n\n" +
-        "STUDENT DETAILS:\n" +
-        cleanQuestion;
-
-} else {
-    prompt =
-        "You are StudyMate AI, a friendly study assistant for school students.\n\n" +
-        "Answer the student's question clearly and accurately.\n\n" +
-        "Use simple language.\n" +
-        "Explain difficult concepts step by step.\n" +
-        "Give examples when useful.\n" +
-        "Avoid unnecessary jargon.\n\n" +
-        "QUESTION:\n" +
-        cleanQuestion;
-}
-
 try {
-    console.log("Sending request to Gemini...");
-    console.log("Mode:", mode);
+    const body = req.body || {};
+
+    const question =
+        typeof body.question === "string"
+            ? body.question
+            : "";
+
+    const mode =
+        typeof body.mode === "string"
+            ? body.mode
+            : "chat";
+
+    if (question.trim().length === 0) {
+        return res.status(400).json({
+            error: "Please enter something first."
+        });
+    }
+
+    const cleanQuestion = question.trim();
+
+    let prompt = "";
+
+    if (mode === "summarize") {
+        prompt =
+            "You are StudyMate AI, a helpful school study assistant.\n\n" +
+            "Summarize the following notes using:\n" +
+            "1. Key Points\n" +
+            "2. Important Concepts\n" +
+            "3. Important Definitions\n" +
+            "4. Quick Revision Points\n\n" +
+            "Use simple language.\n" +
+            "Do not add information that is not present in the notes.\n\n" +
+            "NOTES:\n" +
+            cleanQuestion;
+
+    } else if (mode === "quiz") {
+        prompt =
+            "Create exactly 5 multiple choice questions about the topic below.\n\n" +
+            "Return ONLY valid JSON in this exact structure:\n" +
+            "{\"questions\":[{\"question\":\"Question\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"answer\":0}]}\n\n" +
+            "Rules:\n" +
+            "Exactly 5 questions.\n" +
+            "Exactly 4 options for every question.\n" +
+            "answer must be 0, 1, 2, or 3.\n" +
+            "0 means A, 1 means B, 2 means C, 3 means D.\n" +
+            "Suitable for school students.\n" +
+            "No markdown.\n" +
+            "No explanations.\n\n" +
+            "TOPIC:\n" +
+            cleanQuestion;
+
+    } else if (mode === "flashcards") {
+        prompt =
+            "Create exactly 8 study flashcards about the topic below.\n\n" +
+            "Return ONLY valid JSON in this exact structure:\n" +
+            "{\"flashcards\":[{\"front\":\"Question or term\",\"back\":\"Answer\"}]}\n\n" +
+            "Rules:\n" +
+            "Exactly 8 flashcards.\n" +
+            "Keep answers concise.\n" +
+            "Cover important concepts and definitions.\n" +
+            "Suitable for school students.\n" +
+            "No markdown.\n\n" +
+            "TOPIC:\n" +
+            cleanQuestion;
+
+    } else if (mode === "planner") {
+        prompt =
+            "You are StudyMate AI, a study planning assistant.\n\n" +
+            "Create a realistic study plan from the student's information.\n\n" +
+            "Include daily tasks, subject priorities, revision, practice questions, " +
+            "short breaks, final revision, and useful study tips.\n\n" +
+            "Do not make the schedule unrealistically intense.\n\n" +
+            "STUDENT DETAILS:\n" +
+            cleanQuestion;
+
+    } else {
+        prompt =
+            "You are StudyMate AI, a friendly study assistant for school students.\n\n" +
+            "Answer the student's question clearly and accurately.\n\n" +
+            "Use simple language.\n" +
+            "Explain difficult concepts step by step.\n" +
+            "Give examples when useful.\n" +
+            "Avoid unnecessary jargon.\n\n" +
+            "QUESTION:\n" +
+            cleanQuestion;
+    }
 
     const config = {};
 
@@ -219,12 +211,14 @@ try {
         config.responseMimeType = "application/json";
     }
 
-    const response = await generateWithFallback(
-        prompt,
-        config
-    );
+    console.log("Sending request to Gemini.");
+    console.log("Mode:", mode);
 
-    const answer = response.text;
+    const response = await askGemini(prompt, config);
+
+    const answer = response && response.text
+        ? response.text
+        : "";
 
     if (!answer) {
         return res.status(500).json({
@@ -234,24 +228,23 @@ try {
 
     if (mode === "quiz") {
         try {
-            const parsed = JSON.parse(answer);
+            const quiz = JSON.parse(answer);
 
             if (
-                !parsed.questions ||
-                !Array.isArray(parsed.questions) ||
-                parsed.questions.length !== 5
+                !quiz.questions ||
+                !Array.isArray(quiz.questions) ||
+                quiz.questions.length !== 5
             ) {
-                throw new Error("Invalid quiz structure");
+                throw new Error("Invalid quiz format.");
             }
 
             return res.json({
-                answer: parsed,
+                answer: quiz,
                 mode: mode
             });
 
         } catch (error) {
-            console.error("QUIZ JSON ERROR:", error);
-            console.error("GEMINI RESPONSE:", answer);
+            console.error("Quiz JSON error:", error);
 
             return res.status(500).json({
                 error: "Gemini returned invalid quiz data."
@@ -261,24 +254,23 @@ try {
 
     if (mode === "flashcards") {
         try {
-            const parsed = JSON.parse(answer);
+            const flashcards = JSON.parse(answer);
 
             if (
-                !parsed.flashcards ||
-                !Array.isArray(parsed.flashcards) ||
-                parsed.flashcards.length !== 8
+                !flashcards.flashcards ||
+                !Array.isArray(flashcards.flashcards) ||
+                flashcards.flashcards.length !== 8
             ) {
-                throw new Error("Invalid flashcard structure");
+                throw new Error("Invalid flashcard format.");
             }
 
             return res.json({
-                answer: parsed,
+                answer: flashcards,
                 mode: mode
             });
 
         } catch (error) {
-            console.error("FLASHCARD JSON ERROR:", error);
-            console.error("GEMINI RESPONSE:", answer);
+            console.error("Flashcard JSON error:", error);
 
             return res.status(500).json({
                 error: "Gemini returned invalid flashcard data."
@@ -293,23 +285,21 @@ try {
 
 } catch (error) {
     console.error("================================");
-    console.error("GEMINI ERROR");
+    console.error("STUDYMATE ERROR");
     console.error(error);
     console.error("================================");
 
-    const status = getErrorStatus(error);
+    const status = getStatus(error);
 
     if (status === 429) {
-        return res.json({
-            answer: "⚠️ StudyMate is temporarily busy because the Gemini limit was reached. Please try again later.",
-            mode: mode
+        return res.status(503).json({
+            error: "Gemini is temporarily busy. Please try again later."
         });
     }
 
     if (status === 503) {
-        return res.json({
-            answer: "⚠️ Gemini is temporarily busy. Please try again in a few minutes.",
-            mode: mode
+        return res.status(503).json({
+            error: "Gemini is temporarily busy. Please try again later."
         });
     }
 
@@ -320,34 +310,22 @@ try {
     }
 
     return res.status(500).json({
-        error: "StudyMate could not connect to Gemini right now."
+        error: "StudyMate could not process the request right now."
     });
 }
 ```
 
 });
 
-const server = app.listen(
-PORT,
-"0.0.0.0",
-function () {
+const server = app.listen(PORT, "0.0.0.0", function () {
 console.log("========================================");
 console.log("       StudyMate AI is running!");
-console.log("       http://localhost:" + PORT);
+console.log("       Port: " + PORT);
 console.log("========================================");
-}
-);
+});
 
 server.on("error", function (error) {
-console.error("SERVER ERROR:");
-console.error(error);
-
-```
-if (error.code === "EADDRINUSE") {
-    console.error("Port is already in use.");
-}
-```
-
+console.error("SERVER ERROR:", error);
 });
 
 process.on("uncaughtException", function (error) {
