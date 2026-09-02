@@ -21,8 +21,8 @@ apiKey: apiKey
 });
 
 const MODELS = [
-process.env.GEMINI_PRIMARY_MODEL || "gemini-3.6-flash",
-process.env.GEMINI_FALLBACK_MODEL || "gemini-3.5-flash"
+process.env.GEMINI_PRIMARY_MODEL || "gemini-2.5-flash",
+process.env.GEMINI_FALLBACK_MODEL || "gemini-2.0-flash"
 ];
 
 function wait(ms) {
@@ -36,7 +36,6 @@ if (!error) {
 return 0;
 }
 
-```
 if (error.status) {
     return Number(error.status);
 }
@@ -46,14 +45,12 @@ if (error.error && error.error.code) {
 }
 
 return 0;
-```
 
 }
 
 async function askGemini(prompt, config) {
 let lastError = null;
 
-```
 for (let i = 0; i < MODELS.length; i++) {
     const model = MODELS[i];
 
@@ -97,13 +94,12 @@ for (let i = 0; i < MODELS.length; i++) {
                 continue;
             }
 
-            throw error;
+            break;
         }
     }
 }
 
-throw lastError;
-```
+throw lastError || new Error("Gemini request failed.");
 
 }
 
@@ -116,7 +112,6 @@ status: "StudyMate server is working"
 app.post("/ask", async function (req, res) {
 console.log("Received /ask request");
 
-```
 try {
     const body = req.body || {};
 
@@ -216,9 +211,10 @@ try {
 
     const response = await askGemini(prompt, config);
 
-    const answer = response && response.text
-        ? response.text
-        : "";
+    const answer =
+        response && response.text
+            ? response.text
+            : "";
 
     if (!answer) {
         return res.status(500).json({
@@ -297,7 +293,11 @@ try {
         });
     }
 
-    if (status === 503) {
+    if (
+        status === 500 ||
+        status === 502 ||
+        status === 503
+    ) {
         return res.status(503).json({
             error: "Gemini is temporarily busy. Please try again later."
         });
@@ -313,14 +313,13 @@ try {
         error: "StudyMate could not process the request right now."
     });
 }
-```
 
 });
 
 const server = app.listen(PORT, "0.0.0.0", function () {
 console.log("========================================");
-console.log("       StudyMate AI is running!");
-console.log("       Port: " + PORT);
+console.log(" StudyMate AI is running!");
+console.log(" Port: " + PORT);
 console.log("========================================");
 });
 
