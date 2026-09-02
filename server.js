@@ -1,3 +1,4 @@
+```js
 const express = require("express");
 const dotenv = require("dotenv");
 const { GoogleGenAI } = require("@google/genai");
@@ -13,12 +14,82 @@ app.use(express.static(__dirname));
 const apiKey = process.env.GEMINI_API_KEY;
 
 if (!apiKey) {
-    console.error("ERROR: GEMINI_API_KEY is missing from .env");
+    console.error("ERROR: GEMINI_API_KEY is missing.");
 }
 
 const ai = new GoogleGenAI({
     apiKey: apiKey
 });
+
+const PRIMARY_MODEL = process.env.GEMINI_PRIMARY_MODEL || "gemini-3.6-flash";
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || "gemini-3.5-flash";
+
+function sleep(ms) {
+    return new Promise(function (resolve) {
+        setTimeout(resolve, ms);
+    });
+}
+
+function getErrorStatus(error) {
+    if (!error) return 0;
+    return error.status || (error.error && error.error.code) || 0;
+}
+
+async function generateWithFallback(prompt, config) {
+    const models = [PRIMARY_MODEL, FALLBACK_MODEL];
+
+    let lastError = null;
+
+    for (const model of models) {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                console.log("Trying Gemini model:", model, "Attempt:", attempt);
+
+                const response = await ai.models.generateContent({
+                    model: model,
+                    contents: prompt,
+                    config: config
+                });
+
+                console.log("Gemini response received from:", model);
+
+                return response;
+
+            } catch (error) {
+                lastError = error;
+
+                const status = getErrorStatus(error);
+
+                console.error(
+                    "Gemini error | Model:",
+                    model,
+                    "| Attempt:",
+                    attempt,
+                    "| Status:",
+                    status
+                );
+
+                if (
+                    status === 503 ||
+                    status === 500 ||
+                    status === 502 ||
+                    status === 429
+                ) {
+                    if (attempt < 2) {
+                        await sleep(1500);
+                        continue;
+                    }
+
+                    break;
+                }
+
+                throw error;
+            }
+        }
+    }
+
+    throw lastError;
+}
 
 app.get("/health", function (req, res) {
     res.json({
@@ -52,6 +123,7 @@ app.post("/ask", async function (req, res) {
             "Use simple language. Do not add information not present in the notes.\n\n" +
             "NOTES:\n" +
             cleanQuestion;
+
     } else if (mode === "quiz") {
         prompt =
             "Create exactly 5 multiple choice questions about this topic.\n\n" +
@@ -67,6 +139,7 @@ app.post("/ask", async function (req, res) {
             "No explanations.\n\n" +
             "TOPIC:\n" +
             cleanQuestion;
+
     } else if (mode === "flashcards") {
         prompt =
             "Create exactly 8 study flashcards about this topic.\n\n" +
@@ -80,6 +153,7 @@ app.post("/ask", async function (req, res) {
             "No markdown.\n\n" +
             "TOPIC:\n" +
             cleanQuestion;
+
     } else if (mode === "planner") {
         prompt =
             "You are StudyMate AI, a study planning assistant.\n\n" +
@@ -89,6 +163,7 @@ app.post("/ask", async function (req, res) {
             "Do not make the schedule unrealistically intense.\n\n" +
             "STUDENT DETAILS:\n" +
             cleanQuestion;
+
     } else {
         prompt =
             "You are StudyMate AI, a friendly study assistant for school students.\n\n" +
@@ -111,15 +186,9 @@ app.post("/ask", async function (req, res) {
             config.responseMimeType = "application/json";
         }
 
-        const response = await ai.models.generateContent({
-            model: "gemini-3.6-flash",
-            contents: prompt,
-            config: config
-        });
+        const response = await generateWithFallback(prompt, config);
 
         const answer = response.text;
-
-        console.log("Gemini response received.");
 
         if (!answer) {
             return res.status(500).json({
@@ -135,6 +204,7 @@ app.post("/ask", async function (req, res) {
                     answer: parsed,
                     mode: mode
                 });
+
             } catch (parseError) {
                 console.error("JSON PARSE ERROR:", parseError);
                 console.error("GEMINI RESPONSE:", answer);
@@ -156,21 +226,23 @@ app.post("/ask", async function (req, res) {
         console.error(error);
         console.error("================================");
 
-        if (error && error.status === 429) {
+        const status = getErrorStatus(error);
+
+        if (status === 429) {
             return res.json({
-                answer: "⚠️ StudyMate is working, but the free Gemini quota has been reached. Please try again after the quota resets.",
+                answer: "⚠️ StudyMate is temporarily busy because the Gemini limit was reached. Please try again later.",
                 mode: mode
             });
         }
 
-        if (error && error.status === 503) {
+        if (status === 503) {
             return res.json({
                 answer: "⚠️ Gemini is temporarily busy. Please try again in a few minutes.",
                 mode: mode
             });
         }
 
-        if (error && error.status === 404) {
+        if (status === 404) {
             return res.status(500).json({
                 error: "The Gemini model is unavailable for this API key."
             });
@@ -194,8 +266,7 @@ server.on("error", function (error) {
     console.error(error);
 
     if (error.code === "EADDRINUSE") {
-        console.error("Port 3000 is already in use.");
-        console.error("Run: taskkill /F /IM node.exe");
+        console.error("Port is already in use.");
     }
 });
 
@@ -205,6 +276,6 @@ process.on("uncaughtException", function (error) {
 });
 
 process.on("unhandledRejection", function (error) {
-    console.error("UNHANDLED REJECTION:");
-    console.error(error);
+    console.error("UNHANDLED REJECTION:", error);
 });
+```
