@@ -21,8 +21,8 @@ apiKey: apiKey
 });
 
 const MODELS = [
-    "gemini-2.5-flash",
-    "gemini-3.6-flash"
+"gemini-3.6-flash",
+"gemini-3.7-flash"
 ];
 
 function wait(ms) {
@@ -40,12 +40,43 @@ if (error.status) {
     return Number(error.status);
 }
 
+if (error.code) {
+    return Number(error.code);
+}
+
 if (error.error && error.error.code) {
     return Number(error.error.code);
 }
 
 return 0;
 
+}
+
+function getErrorMessage(error) {
+if (!error) {
+return "Unknown error";
+}
+
+if (error.message) {
+    return String(error.message);
+}
+
+if (error.error && error.error.message) {
+    return String(error.error.message);
+}
+
+return String(error);
+
+}
+
+function isRetryableStatus(status) {
+return (
+status === 429 ||
+status === 500 ||
+status === 502 ||
+status === 503 ||
+status === 504
+);
 }
 
 async function askGemini(prompt, config) {
@@ -59,13 +90,19 @@ for (let i = 0; i < MODELS.length; i++) {
             console.log("Trying model:", model);
             console.log("Attempt:", attempt);
 
-            const response = await ai.models.generateContent({
+            const request = {
                 model: model,
-                contents: prompt,
-                config: config
-            });
+                contents: prompt
+            };
+
+            if (config && Object.keys(config).length > 0) {
+                request.config = config;
+            }
+
+            const response = await ai.models.generateContent(request);
 
             console.log("Gemini response received.");
+            console.log("Successful model:", model);
 
             return response;
 
@@ -73,6 +110,7 @@ for (let i = 0; i < MODELS.length; i++) {
             lastError = error;
 
             const status = getStatus(error);
+            const message = getErrorMessage(error);
 
             console.error(
                 "Gemini error:",
@@ -81,20 +119,15 @@ for (let i = 0; i < MODELS.length; i++) {
                 "attempt=" + attempt
             );
 
-            if (
-                status === 429 ||
-                status === 500 ||
-                status === 502 ||
-                status === 503
-            ) {
-                if (attempt === 1) {
-                    await wait(2000);
-                }
+            console.error("Gemini message:", message);
 
-                continue;
+            if (!isRetryableStatus(status)) {
+                break;
             }
 
-            break;
+            if (attempt === 1) {
+                await wait(2000);
+            }
         }
     }
 }
@@ -212,13 +245,15 @@ try {
     const response = await askGemini(prompt, config);
 
     const answer =
-        response && response.text
-            ? response.text
+        response && typeof response.text === "string"
+            ? response.text.trim()
             : "";
 
     if (!answer) {
-        return res.status(500).json({
-            error: "Gemini returned an empty response."
+        console.error("Gemini returned an empty response.");
+
+        return res.status(502).json({
+            error: "StudyMate received an empty response. Please try again."
         });
     }
 
@@ -234,6 +269,22 @@ try {
                 throw new Error("Invalid quiz format.");
             }
 
+            for (let i = 0; i < quiz.questions.length; i++) {
+                const item = quiz.questions[i];
+
+                if (
+                    !item ||
+                    typeof item.question !== "string" ||
+                    !Array.isArray(item.options) ||
+                    item.options.length !== 4 ||
+                    !Number.isInteger(item.answer) ||
+                    item.answer < 0 ||
+                    item.answer > 3
+                ) {
+                    throw new Error("Invalid quiz question format.");
+                }
+            }
+
             return res.json({
                 answer: quiz,
                 mode: mode
@@ -242,8 +293,8 @@ try {
         } catch (error) {
             console.error("Quiz JSON error:", error);
 
-            return res.status(500).json({
-                error: "Gemini returned invalid quiz data."
+            return res.status(502).json({
+                error: "StudyMate could not format the quiz correctly. Please try again."
             });
         }
     }
@@ -260,6 +311,18 @@ try {
                 throw new Error("Invalid flashcard format.");
             }
 
+            for (let i = 0; i < flashcards.flashcards.length; i++) {
+                const item = flashcards.flashcards[i];
+
+                if (
+                    !item ||
+                    typeof item.front !== "string" ||
+                    typeof item.back !== "string"
+                ) {
+                    throw new Error("Invalid flashcard format.");
+                }
+            }
+
             return res.json({
                 answer: flashcards,
                 mode: mode
@@ -268,8 +331,8 @@ try {
         } catch (error) {
             console.error("Flashcard JSON error:", error);
 
-            return res.status(500).json({
-                error: "Gemini returned invalid flashcard data."
+            return res.status(502).json({
+                error: "StudyMate could not format the flashcards correctly. Please try again."
             });
         }
     }
@@ -282,35 +345,46 @@ try {
 } catch (error) {
     console.error("================================");
     console.error("STUDYMATE ERROR");
+    console.error("================================");
     console.error(error);
     console.error("================================");
 
     const status = getStatus(error);
 
+    console.error("Final Gemini status:", status);
+    console.error("Final Gemini message:", getErrorMessage(error));
+
     if (status === 429) {
         return res.status(503).json({
-            error: "Gemini is temporarily busy. Please try again later."
+            error: "StudyMate is temporarily busy. Please try again in a moment."
         });
     }
 
     if (
         status === 500 ||
         status === 502 ||
-        status === 503
+        status === 503 ||
+        status === 504
     ) {
         return res.status(503).json({
-            error: "Gemini is temporarily busy. Please try again later."
+            error: "StudyMate is temporarily busy. Please try again in a moment."
+        });
+    }
+
+    if (status === 401 || status === 403) {
+        return res.status(500).json({
+            error: "StudyMate's AI service needs configuration. Please contact the administrator."
         });
     }
 
     if (status === 404) {
         return res.status(500).json({
-            error: "The Gemini model is unavailable for this API key."
+            error: "StudyMate's AI model is currently unavailable. Please try again later."
         });
     }
 
     return res.status(500).json({
-        error: "StudyMate could not process the request right now."
+        error: "StudyMate could not process the request right now. Please try again."
     });
 }
 
